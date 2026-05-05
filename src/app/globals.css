@@ -1,0 +1,300 @@
+@import "tailwindcss";
+
+:root {
+  /* Paleta warm: ligeramente sepia, sensacion de "papel" en vez de pantalla quirurgica. */
+  --background:    #f5f3ef; /* crema cálido para fondo de pagina */
+  --background-2:  #fafaf7; /* crema mas claro para cards */
+  --foreground:    #1c1917; /* stone-900 */
+  --foreground-2:  #44403c; /* stone-700 */
+  --foreground-3:  #78716c; /* stone-500 */
+  --border-1:      #e7e5e4; /* stone-200 */
+  --border-2:      #f5f5f4; /* stone-100 */
+  --hover:         #f5f5f4; /* stone-100 */
+}
+
+.dark {
+  /* En oscuro mezclamos zinc (warm gray) con un toque de azul muy sutil. */
+  --background:    #18181b; /* zinc-900 */
+  --background-2:  #27272a; /* zinc-800 - cards */
+  --foreground:    #fafaf9; /* stone-50 */
+  --foreground-2:  #d4d4d8; /* zinc-300 */
+  --foreground-3:  #a1a1aa; /* zinc-400 */
+  --border-1:      #3f3f46; /* zinc-700 */
+  --border-2:      #27272a; /* zinc-800 */
+  --hover:         #3f3f46; /* zinc-700 */
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.theme-toggle {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 80;
+  display: inline-flex;
+  height: 46px;
+  width: 46px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid rgb(148 163 184 / 0.35);
+  background: rgb(15 23 42);
+  color: rgb(226 232 240);
+  box-shadow: 0 18px 45px rgb(2 6 23 / 0.28);
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.theme-toggle:hover,
+.theme-toggle:focus-visible {
+  transform: translateY(-1px);
+  border-color: rgb(96 165 250);
+  box-shadow: 0 20px 48px rgb(2 6 23 / 0.34);
+  outline: none;
+}
+
+.theme-toggle--light {
+  border-color: rgb(203 213 225);
+  background: rgb(255 255 255);
+  color: rgb(15 23 42);
+}
+
+.moon-icon,
+.sun-icon {
+  position: relative;
+  display: block;
+  height: 22px;
+  width: 22px;
+}
+
+.moon-icon {
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.moon-icon::after {
+  position: absolute;
+  top: -2px;
+  right: -5px;
+  height: 22px;
+  width: 22px;
+  border-radius: 999px;
+  background: rgb(15 23 42);
+  content: "";
+}
+
+.theme-toggle--light .moon-icon::after {
+  background: rgb(255 255 255);
+}
+
+.sun-icon {
+  border-radius: 999px;
+  border: 3px solid currentColor;
+}
+
+.sun-icon::before {
+  position: absolute;
+  inset: -7px;
+  border-radius: 999px;
+  background:
+    linear-gradient(currentColor, currentColor) center top / 2px 5px no-repeat,
+    linear-gradient(currentColor, currentColor) center bottom / 2px 5px no-repeat,
+    linear-gradient(currentColor, currentColor) left center / 5px 2px no-repeat,
+    linear-gradient(currentColor, currentColor) right center / 5px 2px no-repeat;
+  content: "";
+}
+
+/* =============================================================================
+   Overrides en MODO CLARO (paleta warm)
+   Reemplazan slate frio por stone calido, dan sensacion de papel.
+   ========================================================================== */
+.bg-slate-50  { background-color: var(--background)   !important; }
+.bg-white     { background-color: var(--background-2) !important; }
+.bg-slate-100 { background-color: var(--hover)        !important; }
+.hover\:bg-slate-50:hover  { background-color: var(--hover) !important; }
+.hover\:bg-slate-100:hover { background-color: #ebe9e6 !important; }
+.border-slate-200 { border-color: var(--border-1) !important; }
+.border-slate-100 { border-color: var(--border-2) !important; }
+.text-slate-950   { color: var(--foreground)   !important; }
+.text-slate-900   { color: var(--foreground)   !important; }
+.text-slate-800   { color: var(--foreground-2) !important; }
+.text-slate-700   { color: var(--foreground-2) !important; }
+.text-slate-600   { color: var(--foreground-3) !important; }
+.text-slate-500   { color: var(--foreground-3) !important; }
+
+/* =============================================================================
+   Overrides en MODO OSCURO (zinc/warm gray, no slate frio)
+   ========================================================================== */
+.dark .bg-slate-50  { background-color: var(--background)   !important; }
+.dark .bg-white     { background-color: var(--background-2) !important; }
+.dark .bg-slate-100 { background-color: var(--hover)        !important; }
+.dark .hover\:bg-slate-50:hover  { background-color: var(--hover) !important; }
+.dark .hover\:bg-slate-100:hover { background-color: #52525b !important; }
+
+.dark .bg-blue-50 {
+  background-color: rgb(59 130 246 / 0.18) !important;
+}
+
+.dark .text-slate-950,
+.dark .text-slate-900 { color: var(--foreground)   !important; }
+.dark .text-slate-800 { color: var(--foreground-2) !important; }
+.dark .text-slate-700,
+.dark .text-slate-600 { color: var(--foreground-2) !important; }
+.dark .text-slate-500 { color: var(--foreground-3) !important; }
+
+.dark .border-slate-200 { border-color: var(--border-1) !important; }
+.dark .border-slate-100 { border-color: var(--border-2) !important; }
+
+.dark input,
+.dark select {
+  background-color: var(--background);
+  color: var(--foreground);
+  border-color: var(--border-1);
+}
+
+.dark input::placeholder {
+  color: var(--foreground-3);
+}
+
+.dark table thead {
+  background-color: var(--hover);
+}
+
+/* =============================================================================
+   Inputs en modo claro: fondo crema (papel) y texto cálido.
+   ========================================================================== */
+input, select, textarea {
+  background-color: #ffffff;
+}
+.dark input, .dark select, .dark textarea {
+  background-color: var(--background);
+}
+
+/* =============================================================================
+   Overrides de modo oscuro para los colores de acento (Group / Metric).
+   En claro siguen mostrandose como pasteles. En oscuro pasan a tonos
+   profundos translucidos para que el texto y los inputs se vean nitidos.
+   ========================================================================== */
+.dark .bg-amber-50   { background-color: rgb(120 53 15 / 0.30) !important; }
+.dark .bg-sky-50     { background-color: rgb(7 89 133 / 0.35) !important; }
+.dark .bg-emerald-50 { background-color: rgb(6 78 59 / 0.35) !important; }
+.dark .bg-rose-50    { background-color: rgb(136 19 55 / 0.30) !important; }
+.dark .bg-violet-50  { background-color: rgb(76 29 149 / 0.35) !important; }
+.dark .bg-indigo-50  { background-color: rgb(49 46 129 / 0.40) !important; }
+
+/* Tonos del texto/icono dentro de los Metric/Group: claros en oscuro. */
+.dark .text-amber-600   { color: #fbbf24 !important; }
+.dark .text-sky-600     { color: #38bdf8 !important; }
+.dark .text-emerald-600 { color: #34d399 !important; }
+.dark .text-rose-600    { color: #fb7185 !important; }
+.dark .text-violet-600  { color: #a78bfa !important; }
+.dark .text-indigo-600  { color: #818cf8 !important; }
+
+.dark .ring-amber-200   { --tw-ring-color: rgb(217 119 6 / 0.5) !important; }
+.dark .ring-sky-200     { --tw-ring-color: rgb(2 132 199 / 0.5) !important; }
+.dark .ring-emerald-200 { --tw-ring-color: rgb(5 150 105 / 0.5) !important; }
+.dark .ring-rose-200    { --tw-ring-color: rgb(225 29 72 / 0.5) !important; }
+.dark .ring-violet-200  { --tw-ring-color: rgb(124 58 237 / 0.5) !important; }
+.dark .ring-indigo-200  { --tw-ring-color: rgb(79 70 229 / 0.5) !important; }
+
+/* El cuadrito blanco que envuelve el icono en oscuro debe ser un tono de slate. */
+.dark .inline-flex.bg-white {
+  background-color: #1e293b !important;
+}
+
+/* Banner de error/info en oscuro. */
+.dark .bg-red-50     { background-color: rgb(127 29 29 / 0.45) !important; }
+.dark .text-red-700  { color: #fca5a5 !important; }
+.dark .bg-amber-50.text-amber-800 { color: #fcd34d !important; }
+.dark .bg-emerald-50 { background-color: rgb(6 78 59 / 0.45) !important; }
+.dark .text-emerald-700 { color: #6ee7b7 !important; }
+
+/* Texto del cuerpo (slate-800) en oscuro. */
+.dark .text-slate-800 {
+  color: #e2e8f0 !important;
+}
+
+/* =============================================================================
+   Fila seleccionada en tablas (acento warm)
+   El unico punto de color calido en toda la app: indica claramente que la fila
+   esta activa y se complementa con la paleta warm general.
+   ========================================================================== */
+.fila-seleccionada {
+  background-color: rgb(254 215 170 / 0.45) !important; /* orange-200 con alpha */
+  box-shadow: inset 3px 0 0 0 #f97316;                  /* orange-500 borde izquierdo */
+}
+.fila-seleccionada td {
+  color: #7c2d12 !important; /* orange-900 */
+}
+
+.dark .fila-seleccionada {
+  background-color: rgb(154 52 18 / 0.30) !important; /* orange-800 translucido */
+  box-shadow: inset 3px 0 0 0 #fb923c;                /* orange-400 borde */
+}
+.dark .fila-seleccionada td {
+  color: #fed7aa !important; /* orange-200 */
+}
+
+/* =============================================================================
+   Botones en modo oscuro.
+   En claro tienen fondo pastel; en oscuro pasamos a tonos profundos
+   que contrastan con el card oscuro y mantienen el color del texto/borde.
+   ========================================================================== */
+.dark .btn-secondary {
+  background-color: rgb(30 58 138 / 0.40) !important;
+  border-color:     rgb(96 165 250 / 0.40) !important;
+  color:            #93c5fd !important;
+}
+.dark .btn-secondary:hover {
+  background-color: rgb(30 58 138 / 0.65) !important;
+}
+.dark .btn-secondary:active {
+  background-color: rgb(30 58 138 / 0.85) !important;
+}
+
+.dark .btn-danger {
+  background-color: rgb(127 29 29 / 0.40) !important;
+  border-color:     rgb(248 113 113 / 0.40) !important;
+  color:            #fca5a5 !important;
+}
+.dark .btn-danger:hover {
+  background-color: rgb(127 29 29 / 0.65) !important;
+}
+.dark .btn-danger:active {
+  background-color: rgb(127 29 29 / 0.85) !important;
+}
+
+.dark .btn-ghost {
+  background-color: rgb(30 41 59 / 0.80) !important;
+  border-color:     rgb(71 85 105 / 0.55) !important;
+  color:            #cbd5e1 !important;
+}
+.dark .btn-ghost:hover {
+  background-color: rgb(51 65 85 / 0.90) !important;
+}
+.dark .btn-ghost:active {
+  background-color: rgb(71 85 105 / 0.95) !important;
+}
