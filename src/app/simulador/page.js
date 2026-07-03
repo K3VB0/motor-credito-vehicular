@@ -103,11 +103,13 @@ const demo4 = {
   cok: 25,
 }
 
+// Cada demo referencia por un dato estable (no por id) al cliente (DNI) y al
+// vehiculo (marca+modelo) de demostracion, para asociarlos automaticamente.
 const demos = [
-  { etiqueta: 'Demo 1', datos: demo1, nota: 'Plan 36 en Soles: TNA 15% diaria, gracia total 3 y parcial 3, cuota final 40%.' },
-  { etiqueta: 'Demo 2', datos: demo2, nota: 'Plan 24 en Soles: TNA 15% diaria, gracia total 2 y parcial 2, cuota final 50%.' },
-  { etiqueta: 'Demo 3', datos: demo3, nota: 'Credito en Dolares: TEA 12.5% directa, 48 cuotas sin gracia, cuota final 35%.' },
-  { etiqueta: 'Demo 4', datos: demo4, nota: 'SUV en Soles: TNA 14% capitalizacion mensual, 60 cuotas, gracia parcial 2, sin cuota final.' },
+  { etiqueta: 'Demo 1', datos: demo1, dni: '45678912', vehiculo: 'Chevrolet Spark GT', nota: 'Plan 36 en Soles: TNA 15% diaria, gracia total 3 y parcial 3, cuota final 40%.' },
+  { etiqueta: 'Demo 2', datos: demo2, dni: '41236587', vehiculo: 'Chevrolet Spark GT', nota: 'Plan 24 en Soles: TNA 15% diaria, gracia total 2 y parcial 2, cuota final 50%.' },
+  { etiqueta: 'Demo 3', datos: demo3, dni: '47851236', vehiculo: 'Mazda CX-30', nota: 'Credito en Dolares: TEA 12.5% directa, 48 cuotas sin gracia, cuota final 35%.' },
+  { etiqueta: 'Demo 4', datos: demo4, dni: '43219876', vehiculo: 'Kia Sportage', nota: 'SUV en Soles: TNA 14% capitalizacion mensual, 60 cuotas, gracia parcial 2, sin cuota final.' },
 ]
 
 const ayuda = {
@@ -280,15 +282,26 @@ export default function SimuladorPage() {
     })
   }
 
-  function usarDatosEjemplo(ejemplo) {
-    setForm(current => ({
-      ...ejemplo,
-      // Conservar el cliente elegido; el vehiculo se desasocia porque el
-      // ejemplo trae su propio precio.
-      clienteId:  current.clienteId,
-      vehiculoId: '',
-    }))
-    setMensaje('')
+  function usarDatosEjemplo(demo) {
+    // Asociar automaticamente el cliente (por DNI) y el vehiculo de demostracion.
+    // El vehiculo se empareja por marca+modelo y ademas por precio y moneda, para
+    // no confundirlo con otro registro de igual nombre pero distinto precio.
+    const cliente = clientes.find(c => c.dni === demo.dni)
+    const vehiculo = vehiculos.find(v =>
+      `${v.marca} ${v.modelo}` === demo.vehiculo &&
+      Number(v.precio_venta) === demo.datos.precioVenta &&
+      (v.moneda || 'PEN') === demo.datos.moneda
+    )
+    setForm({
+      ...demo.datos,
+      clienteId:  cliente ? cliente.id : '',
+      vehiculoId: vehiculo ? vehiculo.id : '',
+    })
+    if (!cliente || !vehiculo) {
+      setMensaje('Datos cargados. Registra los clientes y vehiculos de demostracion para asociarlos automaticamente.')
+    } else {
+      setMensaje('')
+    }
   }
 
   function limpiarFormulario() {
@@ -418,7 +431,7 @@ export default function SimuladorPage() {
               {demos.map(demo => (
                 <Button
                   key={demo.etiqueta}
-                  onClick={() => usarDatosEjemplo(demo.datos)}
+                  onClick={() => usarDatosEjemplo(demo)}
                   variant="secondary"
                   size="sm"
                   title={demo.nota}
