@@ -79,7 +79,8 @@ export function calcularCredito(p) {
   const cuotaFinal    = pctCuotaFinal * precioVenta;      // CF (cuotón)
   const montoPrestamo = precioVenta - cuotaInicial + costesIniciales; // Préstamo (recibe el cliente)
   // Saldo a financiar con cuotas regulares = préstamo menos VP de la cuota final
-  const vpCuotaFinal  = cuotaFinal / Math.pow(1 + TEM + pSegDesPer, N + 1);
+  const pSegDesMensual = pctSegDesgravamen; // tasa mensual base (idéntica al modelo)
+  const vpCuotaFinal  = cuotaFinal / Math.pow(1 + TEM + pSegDesMensual, N + 1);
   const saldoFinanciar = montoPrestamo - vpCuotaFinal;    // Saldo
 
   // Tipo de período de gracia
