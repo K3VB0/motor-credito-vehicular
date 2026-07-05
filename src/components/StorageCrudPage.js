@@ -13,6 +13,27 @@ import { supabase, supabaseConfigurado } from '@/lib/supabase'
 //   fields        - [{ name, label, type, placeholder, defaultValue, help, required }]
 //   columnMap     - opcional, mapeo nombreCampo -> nombre_columna_db (snake_case)
 
+// Traduce los errores tecnicos de Postgres/Supabase a mensajes claros en español.
+function mensajeError(err) {
+  const code = err?.code
+  const texto = (err?.message || '').toLowerCase()
+  if (code === '23505' || texto.includes('duplicate key')) {
+    if (texto.includes('dni')) return 'Ya existe un cliente con ese DNI.'
+    if (texto.includes('placa')) return 'Ya existe un vehiculo con esa placa.'
+    return 'Ese registro ya existe (dato duplicado).'
+  }
+  if (code === '23502' || texto.includes('not-null') || texto.includes('null value')) {
+    return 'Faltan datos obligatorios. Completa todos los campos requeridos.'
+  }
+  if (code === '22P02' || texto.includes('invalid input syntax') || texto.includes('invalid input value')) {
+    return 'Alguno de los datos tiene un formato invalido. Revisa los numeros y montos.'
+  }
+  if (code === '23514' || texto.includes('check constraint')) {
+    return 'Alguno de los datos no cumple con lo permitido. Revisa los valores ingresados.'
+  }
+  return err?.message || 'No se pudo completar la operacion.'
+}
+
 function aDb(row, columnMap) {
   if (!columnMap) return row
   const out = {}
@@ -102,12 +123,12 @@ export default function StorageCrudPage({
         .from(table)
         .update(payload)
         .eq('id', editingId)
-      if (err) { setError(err.message); return }
+      if (err) { setError(mensajeError(err)); return }
     } else {
       const { error: err } = await supabase
         .from(table)
         .insert({ ...payload, usuario_id: userId })
-      if (err) { setError(err.message); return }
+      if (err) { setError(mensajeError(err)); return }
     }
     resetForm()
     recargar()
@@ -121,7 +142,7 @@ export default function StorageCrudPage({
   async function eliminar(id) {
     if (!supabaseConfigurado) return
     const { error: err } = await supabase.from(table).delete().eq('id', id)
-    if (err) { setError(err.message); return }
+    if (err) { setError(mensajeError(err)); return }
     if (editingId === id) resetForm()
     if (seleccionId === id) setSeleccionId(null)
     recargar()

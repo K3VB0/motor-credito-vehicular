@@ -46,7 +46,16 @@ export default function RegistroPage() {
     })
 
     if (registerError) {
-      setError(registerError.message)
+      const t = (registerError.message || '').toLowerCase()
+      let msg = 'No se pudo crear la cuenta. Intenta nuevamente.'
+      if (t.includes('already registered') || t.includes('already been registered')) {
+        msg = 'Ya existe una cuenta con ese correo. Inicia sesion.'
+      } else if (t.includes('password')) {
+        msg = 'La clave debe tener al menos 6 caracteres.'
+      } else if (t.includes('email') && (t.includes('invalid') || t.includes('validate'))) {
+        msg = 'El correo no es valido. Revisa que este bien escrito.'
+      }
+      setError(msg)
       setLoading(false)
       return
     }

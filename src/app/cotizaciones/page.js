@@ -44,7 +44,7 @@ export default function CotizacionesPage() {
         .order('creado_en', { ascending: false })
       if (cancelado) return
       if (err) {
-        setError(err.message)
+        setError('No se pudieron cargar las cotizaciones. Recarga la pagina e intenta nuevamente.')
       } else {
         setItems(data || [])
         setError('')
@@ -69,7 +69,7 @@ export default function CotizacionesPage() {
     if (!seleccionada) return
     if (!window.confirm('Eliminar esta cotizacion y su cronograma? Esta accion no se puede deshacer.')) return
     const { error: err } = await supabase.from('simulaciones').delete().eq('id', seleccionada.id)
-    if (err) { setError(err.message); return }
+    if (err) { setError('No se pudo eliminar la cotizacion. Intenta nuevamente.'); return }
     setSeleccionId(null)
     setRecarga(n => n + 1)
   }

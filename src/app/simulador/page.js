@@ -384,7 +384,7 @@ export default function SimuladorPage() {
 
     if (err) {
       setGuardando(false)
-      setMensaje(`Error al guardar: ${err.message}`)
+      setMensaje('No se pudo guardar la cotizacion. Revisa los datos e intenta nuevamente.')
       return
     }
 
@@ -412,7 +412,7 @@ export default function SimuladorPage() {
     const { error: errCron } = await supabase.from('cronograma').insert(filasCronograma)
     setGuardando(false)
     if (errCron) {
-      setMensaje(`Cotizacion guardada, pero fallo el cronograma: ${errCron.message}`)
+      setMensaje('La cotizacion se guardo, pero hubo un problema al registrar el cronograma.')
     } else {
       setMensaje('Cotizacion y cronograma guardados en la base de datos.')
     }
