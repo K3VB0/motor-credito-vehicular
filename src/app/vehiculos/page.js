@@ -45,10 +45,14 @@ const fields = [
     step: 100,
   },
   {
-    name: 'moneda', label: 'Moneda', placeholder: 'PEN',
-    help: 'Moneda en la que se cotiza el vehiculo. Use PEN para Soles o USD para Dolares.',
+    name: 'moneda', label: 'Moneda',
+    help: 'Moneda en la que se cotiza el vehiculo.',
     defaultValue: 'PEN',
     colWidth: '7%',
+    options: [
+      { value: 'PEN', label: 'Soles (PEN)' },
+      { value: 'USD', label: 'Dolares (USD)' },
+    ],
   },
 ]
 

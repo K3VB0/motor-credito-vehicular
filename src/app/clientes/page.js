@@ -13,8 +13,10 @@ const fields = [
   },
   {
     name: 'dni', label: 'DNI', placeholder: '12345678',
-    help: 'Numero de DNI del cliente (8 digitos). Debe ser unico en el sistema.',
+    help: 'Documento de identidad. Solo numeros, maximo 12 digitos. Debe ser unico en el sistema.',
     colWidth: '8%',
+    maxLength: 12,
+    inputMode: 'numeric',
   },
   {
     name: 'email', label: 'Correo', type: 'email', placeholder: 'cliente@correo.com',
@@ -24,9 +26,11 @@ const fields = [
   },
   {
     name: 'telefono', label: 'Telefono', placeholder: '999999999',
-    help: 'Numero de contacto del cliente. Recomendado: celular peruano de 9 digitos.',
+    help: 'Numero de contacto. Solo numeros, maximo 15 digitos (celular peruano: 9 digitos).',
     required: false,
     colWidth: '9%',
+    maxLength: 15,
+    inputMode: 'numeric',
   },
   {
     name: 'direccion', label: 'Direccion', placeholder: 'Av. Javier Prado 123',

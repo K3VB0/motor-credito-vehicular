@@ -182,18 +182,39 @@ export default function StorageCrudPage({
                     >?</span>
                   )}
                 </span>
-                <input
-                  type={field.type || 'text'}
-                  value={form[field.name]}
-                  onChange={event => updateField(field.name, event.target.value)}
-                  required={field.required !== false}
-                  placeholder={field.placeholder}
-                  title={field.help}
-                  min={field.type === 'number' ? (field.min ?? 0) : undefined}
-                  max={field.max}
-                  step={field.step}
-                  className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                />
+                {field.options ? (
+                  <select
+                    value={form[field.name]}
+                    onChange={event => updateField(field.name, event.target.value)}
+                    required={field.required !== false}
+                    title={field.help}
+                    className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+                  >
+                    {field.options.map(op => (
+                      <option key={op.value} value={op.value}>{op.label}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type={field.type || 'text'}
+                    value={form[field.name]}
+                    onChange={event => updateField(
+                      field.name,
+                      field.inputMode === 'numeric'
+                        ? event.target.value.replace(/\D/g, '')
+                        : event.target.value,
+                    )}
+                    required={field.required !== false}
+                    placeholder={field.placeholder}
+                    title={field.help}
+                    min={field.type === 'number' ? (field.min ?? 0) : undefined}
+                    max={field.max}
+                    step={field.step}
+                    maxLength={field.maxLength}
+                    inputMode={field.inputMode}
+                    className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  />
+                )}
               </label>
             ))}
 
