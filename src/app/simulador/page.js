@@ -156,6 +156,7 @@ export default function SimuladorPage() {
   const [vehiculos, setVehiculos] = useState([])
   const [mensaje, setMensaje] = useState('')
   const [guardando, setGuardando] = useState(false)
+  const [editandoId, setEditandoId] = useState(null) // id de la cotizacion abierta desde el historial
 
   useEffect(() => {
     if (!supabaseConfigurado) return
@@ -208,6 +209,7 @@ export default function SimuladorPage() {
         clienteId:           s.cliente_id || '',
         vehiculoId:          s.vehiculo_id || '',
       })
+      setEditandoId(simId) // se guardara sobre esta cotizacion, no como nueva
     }
     cargarSimulacion()
     return () => { cancelado = true }
@@ -239,6 +241,14 @@ export default function SimuladorPage() {
       ]
       if (camposNoNegativos.some(v => numberValue(v) < 0)) {
         throw new Error('Los porcentajes y costos no pueden ser negativos.')
+      }
+      const pctCI = numberValue(form.pctCuotaInicial)
+      const pctCF = numberValue(form.pctBalon)
+      if (pctCI > 100 || pctCF > 100) {
+        throw new Error('La cuota inicial y la cuota final no pueden superar el 100% del precio.')
+      }
+      if (pctCI + pctCF >= 100) {
+        throw new Error('La cuota inicial mas la cuota final debe ser menor al 100% del precio.')
       }
 
       return {
@@ -297,6 +307,7 @@ export default function SimuladorPage() {
       clienteId:  cliente ? cliente.id : '',
       vehiculoId: vehiculo ? vehiculo.id : '',
     })
+    setEditandoId(null) // un demo siempre se guarda como cotizacion nueva
     if (!cliente || !vehiculo) {
       setMensaje('Datos cargados. Registra los clientes y vehiculos de demostracion para asociarlos automaticamente.')
     } else {
@@ -306,6 +317,7 @@ export default function SimuladorPage() {
 
   function limpiarFormulario() {
     setForm(initialForm)
+    setEditandoId(null)
     setMensaje('')
   }
 
@@ -376,11 +388,17 @@ export default function SimuladorPage() {
       cok:                 numberValue(form.cok) / 100,
     }
 
-    const { data: sim, error: err } = await supabase
-      .from('simulaciones')
-      .insert(payload)
-      .select('id')
-      .single()
+    // Si la cotizacion se abrio desde el historial, se ACTUALIZA; si no, se crea nueva.
+    let sim, err
+    if (editandoId) {
+      const res = await supabase.from('simulaciones').update(payload).eq('id', editandoId).select('id').single()
+      sim = res.data; err = res.error
+      // Se reemplaza el cronograma anterior por el recalculado.
+      if (!err) await supabase.from('cronograma').delete().eq('simulacion_id', editandoId)
+    } else {
+      const res = await supabase.from('simulaciones').insert(payload).select('id').single()
+      sim = res.data; err = res.error
+    }
 
     if (err) {
       setGuardando(false)
@@ -413,8 +431,11 @@ export default function SimuladorPage() {
     setGuardando(false)
     if (errCron) {
       setMensaje('La cotizacion se guardo, pero hubo un problema al registrar el cronograma.')
+    } else if (editandoId) {
+      setMensaje('✓ Cambios guardados correctamente.')
     } else {
-      setMensaje('Cotizacion y cronograma guardados en la base de datos.')
+      setEditandoId(sim.id) // ya existe: si se vuelve a guardar, se actualiza (no se duplica)
+      setMensaje('✓ Cotizacion guardada correctamente.')
     }
   }
 
@@ -521,7 +542,7 @@ export default function SimuladorPage() {
             fullWidth
             className="mt-4"
           >
-            {guardando ? 'Guardando...' : 'Guardar cotizacion'}
+            {guardando ? 'Guardando...' : editandoId ? 'Guardar cambios' : 'Guardar cotizacion'}
           </Button>
 
           {mensaje && (
