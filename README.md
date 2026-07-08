@@ -4,6 +4,10 @@ Aplicacion web de simulacion de credito vehicular.
 
 El sistema permite registrar clientes y vehiculos, simular un credito vehicular en Peru por el metodo frances vencido ordinario y calcular indicadores como VAN, TIR mensual y TCEA.
 
+Aplicacion en produccion: https://motor-credito-vehicular.vercel.app
+
+Construida con Next.js (React) y Tailwind CSS; base de datos y autenticacion en Supabase (PostgreSQL); desplegada en Vercel.
+
 ## Estructura
 
 ```txt
@@ -38,14 +42,31 @@ motor-credito-vehicular/
 - Clientes: alta, edicion y eliminacion, persistidos en Supabase.
 - Vehiculos: alta, edicion y eliminacion, persistidos en Supabase.
 
-## Comandos
+## Requisitos
+
+- Node.js 18 o superior.
+
+## Ejecucion local
 
 ```bash
-npm run dev
-npm run lint
-npm run build
+npm install    # instala las dependencias (solo la primera vez)
+npm run dev    # inicia el servidor en http://localhost:3000
+```
+
+Otros comandos:
+
+```bash
+npm run build  # compila para produccion
+npm run lint   # revisa el codigo
 ```
 
 ## Configuracion
 
-Define las variables de Supabase (`NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY`) en un archivo `.env.local`. Sin ellas, la aplicacion funciona en modo demo con datos guardados en el navegador.
+Crea un archivo `.env.local` en la raiz con las variables de Supabase:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+```
+
+Sin estas variables, la aplicacion funciona en modo demo con datos guardados en el navegador (sin login real ni persistencia).
