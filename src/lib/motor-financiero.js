@@ -8,9 +8,14 @@
 
 /** #PMT - Cuota vencida por metodo frances (fv=0, type=0). Devuelve valor negativo (pago). */
 function PMT(rate, nper, pv) {
-  if (rate === 0) return -pv / nper;
-  const f = Math.pow(1 + rate, nper);
-  return -(rate * pv * f) / (f - 1);
+  let pago;
+  if (rate === 0) {
+    pago = -pv / nper;                    // caso limite sin interes
+  } else {
+    const f = Math.pow(1 + rate, nper);   // factor (1+i)^n del metodo frances
+    pago = -(rate * pv * f) / (f - 1);    // PMT = -i*PV*(1+i)^n / ((1+i)^n - 1)
+  }
+  return pago;
 }
 
 
@@ -86,11 +91,10 @@ export function calcularCredito(p) {
   const saldoFinanciar = montoPrestamo - vpCuotaFinal;    // Saldo
 
   // Tipo de período de gracia
-  const tipoPG = (nc) => {
-    if (nc <= graciaTotal) return 'T';
-    if (nc <= graciaTotal + graciaParcial) return 'P';
-    return 'S';
-  };
+  const tipoPG = (nc) =>
+    nc <= graciaTotal                   ? 'T'   // gracia total
+    : nc <= graciaTotal + graciaParcial ? 'P'   // gracia parcial
+    : 'S';                                      // cuota normal
 
   // Cronograma (NC = 0 .. N+1) con cuotón paralelo
   const cronograma = [];
@@ -214,9 +218,9 @@ export function calcularTIR(flujos, tol = 1e-10, maxIter = 500) {
   // VAN de los flujos a una tasa r de tanteo.
   const van = (r) => flujos.reduce((acc, f, t) => acc + f / Math.pow(1 + r, t), 0);
 
-  // Intervalo de busqueda: desde -99% hasta +1000%. Se amplia el extremo
-  // superior mientras el VAN de ambos extremos tenga el mismo signo, para
-  // encerrar la raiz (cambio de signo) antes de iterar.
+  // Intervalo de busqueda: de -99% a +1000% (no -100% exacto porque en r = -1
+  // el divisor (1+r)^t se anula). Se amplia el extremo superior mientras el VAN
+  // de ambos extremos tenga el mismo signo, para encerrar la raiz antes de iterar.
   let tasaMin = -0.99;
   let tasaMax = 10;
   let vanMin = van(tasaMin);
@@ -229,21 +233,23 @@ export function calcularTIR(flujos, tol = 1e-10, maxIter = 500) {
   }
 
   // Biseccion (aproximaciones sucesivas): el intervalo se parte a la mitad y
-  // se conserva el lado donde el VAN cambia de signo, hasta acercarse a VAN = 0.
+  // se conserva el lado donde el VAN cambia de signo, hasta que VAN ~ 0.
   let tir = NaN;
   if (vanMin * vanMax <= 0) {
-    tir = (tasaMin + tasaMax) / 2;
-    for (let iter = 0; iter < maxIter; iter = iter + 1) {
+    let iteraciones = 0;
+    let convergio = false;
+    while (!convergio && iteraciones < maxIter) {
       tir = (tasaMin + tasaMax) / 2;
       const vanMedio = van(tir);
       if (Math.abs(vanMedio) < tol || (tasaMax - tasaMin) < 1e-14) {
-        iter = maxIter; // condicion de salida del bucle
+        convergio = true; // criterio de convergencia: VAN(tir) ~ 0
       } else if (vanMin * vanMedio < 0) {
         tasaMax = tir;
       } else {
         tasaMin = tir;
         vanMin = vanMedio;
       }
+      iteraciones = iteraciones + 1;
     }
   }
   return tir;

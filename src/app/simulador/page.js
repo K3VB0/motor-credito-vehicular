@@ -24,7 +24,7 @@ const initialForm = {
   plazo: '',
   tipoTasa: 'TEA',
   valorTasa: '',
-  capitalizacion: 12,
+  capitalizacion: 360,
   graciaTotal: 0,
   graciaParcial: 0,
   pctBalon: 0,
@@ -195,7 +195,7 @@ export default function SimuladorPage() {
         plazo:               s.plazo_meses || '',
         tipoTasa:            s.tipo_tasa || 'TEA',
         valorTasa:           aPorcentaje(s.valor_tasa),
-        capitalizacion:      s.capitalizacion || 12,
+        capitalizacion:      s.capitalizacion || 360,
         graciaTotal:         s.gracia_total || 0,
         graciaParcial:       s.gracia_parcial || 0,
         pctBalon:            aPorcentaje(s.pct_balon),
@@ -223,7 +223,11 @@ export default function SimuladorPage() {
       const graciaTotal = numberValue(form.graciaTotal)
       const graciaParcial = numberValue(form.graciaParcial)
 
-      // Si todavia no hay datos minimos, no calculamos nada (panel vacio).
+      // Un valor negativo escrito a proposito se rechaza con mensaje;
+      // los campos vacios (o en cero) solo dejan el panel sin resultados.
+      if (precioVenta < 0 || plazo < 0 || valorTasa < 0) {
+        throw new Error('El precio, el plazo y la tasa no pueden ser negativos.')
+      }
       if (plazo <= 0 || precioVenta <= 0 || valorTasa <= 0) {
         return { resultado: null, error: '' }
       }
@@ -258,7 +262,7 @@ export default function SimuladorPage() {
           plazo,
           tipoTasa: form.tipoTasa,
           valorTasa: numberValue(form.valorTasa) / 100,
-          capitalizacion: numberValue(form.capitalizacion) || 12,
+          capitalizacion: numberValue(form.capitalizacion) || 360,
           graciaTotal,
           graciaParcial,
           pctBalon: numberValue(form.pctBalon) / 100,
@@ -365,7 +369,7 @@ export default function SimuladorPage() {
       plazo_meses:       numberValue(form.plazo),
       tipo_tasa:         form.tipoTasa,
       valor_tasa:        numberValue(form.valorTasa) / 100,
-      capitalizacion:    form.tipoTasa === 'TNA' ? (numberValue(form.capitalizacion) || 12) : 12,
+      capitalizacion:    form.tipoTasa === 'TNA' ? (numberValue(form.capitalizacion) || 360) : 360,
       gracia_total:      numberValue(form.graciaTotal),
       gracia_parcial:    numberValue(form.graciaParcial),
       pct_balon:         numberValue(form.pctBalon) / 100,
@@ -394,7 +398,10 @@ export default function SimuladorPage() {
       const res = await supabase.from('simulaciones').update(payload).eq('id', editandoId).select('id').single()
       sim = res.data; err = res.error
       // Se reemplaza el cronograma anterior por el recalculado.
-      if (!err) await supabase.from('cronograma').delete().eq('simulacion_id', editandoId)
+      if (!err) {
+        const { error: errDel } = await supabase.from('cronograma').delete().eq('simulacion_id', editandoId)
+        if (errDel) err = errDel
+      }
     } else {
       const res = await supabase.from('simulaciones').insert(payload).select('id').single()
       sim = res.data; err = res.error

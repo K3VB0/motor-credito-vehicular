@@ -29,6 +29,7 @@ function mensajeError(err) {
     return 'Alguno de los datos tiene un formato invalido. Revisa los numeros y montos.'
   }
   if (code === '23514' || texto.includes('check constraint')) {
+    if (texto.includes('dni')) return 'El DNI debe tener exactamente 8 digitos.'
     return 'Alguno de los datos no cumple con lo permitido. Revisa los valores ingresados.'
   }
   return err?.message || 'No se pudo completar la operacion.'
@@ -211,6 +212,7 @@ export default function StorageCrudPage({
                     max={field.max}
                     step={field.step}
                     maxLength={field.maxLength}
+                    minLength={field.minLength}
                     inputMode={field.inputMode}
                     className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                   />

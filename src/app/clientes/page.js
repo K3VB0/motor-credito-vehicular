@@ -13,9 +13,10 @@ const fields = [
   },
   {
     name: 'dni', label: 'DNI', placeholder: '12345678',
-    help: 'Documento de identidad. Solo numeros, maximo 12 digitos. Debe ser unico en el sistema.',
+    help: 'Documento nacional de identidad: 8 digitos. Debe ser unico en el sistema.',
     colWidth: '8%',
-    maxLength: 12,
+    maxLength: 8,
+    minLength: 8,
     inputMode: 'numeric',
   },
   {
