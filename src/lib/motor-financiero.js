@@ -6,7 +6,7 @@
 
 // Utilitarios financieros
 
-/** PMT: cuota vencida (fv=0, type=0). Devuelve valor negativo (pago). */
+/** #PMT - Cuota vencida por metodo frances (fv=0, type=0). Devuelve valor negativo (pago). */
 function PMT(rate, nper, pv) {
   if (rate === 0) return -pv / nper;
   const f = Math.pow(1 + rate, nper);
@@ -17,9 +17,10 @@ function PMT(rate, nper, pv) {
 // 1. CONVERSIÓN DE TASAS
 
 /**
- * TNA -> TEA según el período de capitalización, o TEA directa.
- *   capPorAnio: capitalizaciones por año (Diaria = 360, Mensual = 12).
- *   TEA = (1 + TNA/capPorAnio)^capPorAnio - 1
+ * #TASA - Conversion de tasas. TNA -> TEA segun el periodo de capitalizacion
+ * (capPorAnio viene del formulario, no esta fijo), o TEA directa; luego TEA -> TEM.
+ *   TEA = (1 + TNA/capPorAnio)^capPorAnio - 1     (capPorAnio: Diaria = 360, Mensual = 12)
+ *   TEM = (1 + TEA)^(30/360) - 1
  */
 export function obtenerTasas(tipoTasa, tasa, { capPorAnio = 360, frecuencia = 30, diasPorAnio = 360 } = {}) {
   const TEA = tipoTasa === 'TNA'
@@ -78,7 +79,8 @@ export function calcularCredito(p) {
   const cuotaInicial  = pctCuotaInicial * precioVenta;    // CI
   const cuotaFinal    = pctCuotaFinal * precioVenta;      // CF (cuotón)
   const montoPrestamo = precioVenta - cuotaInicial + costesIniciales; // Préstamo (recibe el cliente)
-  // Saldo a financiar con cuotas regulares = préstamo menos VP de la cuota final
+  // #BALON - Cuota final (cuoton) traida a valor presente: CF / (1+TEM+desgravamen)^(N+1).
+  // El saldo a financiar con cuotas regulares es el prestamo menos ese valor presente.
   const pSegDesMensual = pctSegDesgravamen; // tasa mensual base (idéntica al modelo)
   const vpCuotaFinal  = cuotaFinal / Math.pow(1 + TEM + pSegDesMensual, N + 1);
   const saldoFinanciar = montoPrestamo - vpCuotaFinal;    // Saldo
@@ -159,7 +161,7 @@ export function calcularCredito(p) {
   // Indicadores
   const COKi = Math.pow(1 + cok, frecuencia / diasPorAnio) - 1;
   const TIR  = calcularTIR(flujo);
-  const TCEA = Math.pow(1 + TIR, diasPorAnio / frecuencia) - 1;  // (1+TIR)^12 - 1
+  const TCEA = Math.pow(1 + TIR, diasPorAnio / frecuencia) - 1;  // #TCEA - Costo efectivo anual = (1+TIR)^12 - 1
   const VAN  = calcularVAN(flujo, COKi);
 
   // Totales
@@ -207,22 +209,47 @@ export function calcularCredito(p) {
 
 // 3. INDICADORES (TIR por bisección)
 
-export function calcularTIR(flujos, tol = 1e-10, maxIter = 300) {
+// #TIR - Tasa Interna de Retorno por biseccion: la tasa que hace VAN(r) = 0.
+export function calcularTIR(flujos, tol = 1e-10, maxIter = 500) {
+  // VAN de los flujos a una tasa r de tanteo.
   const van = (r) => flujos.reduce((acc, f, t) => acc + f / Math.pow(1 + r, t), 0);
-  let ra = 0, rb = 1, fa = van(ra), fb = van(rb), exp = 0;
-  while (fa * fb > 0 && exp < 300) { rb *= 1.5; fb = van(rb); exp++; }
-  if (fa * fb > 0) return NaN;
-  let rm = ra;
-  for (let k = 0; k < maxIter; k++) {
-    rm = (ra + rb) / 2;
-    const fm = van(rm);
-    if (Math.abs(fm) < tol || (rb - ra) < 1e-14) return rm;
-    if (fa * fm < 0) { rb = rm; fb = fm; } else { ra = rm; fa = fm; }
+
+  // Intervalo de busqueda: desde -99% hasta +1000%. Se amplia el extremo
+  // superior mientras el VAN de ambos extremos tenga el mismo signo, para
+  // encerrar la raiz (cambio de signo) antes de iterar.
+  let tasaMin = -0.99;
+  let tasaMax = 10;
+  let vanMin = van(tasaMin);
+  let vanMax = van(tasaMax);
+  let ampliaciones = 0;
+  while (vanMin * vanMax > 0 && ampliaciones < maxIter) {
+    tasaMax = tasaMax * 1.5;
+    vanMax = van(tasaMax);
+    ampliaciones = ampliaciones + 1;
   }
-  return rm;
+
+  // Biseccion (aproximaciones sucesivas): el intervalo se parte a la mitad y
+  // se conserva el lado donde el VAN cambia de signo, hasta acercarse a VAN = 0.
+  let tir = NaN;
+  if (vanMin * vanMax <= 0) {
+    tir = (tasaMin + tasaMax) / 2;
+    for (let iter = 0; iter < maxIter; iter = iter + 1) {
+      tir = (tasaMin + tasaMax) / 2;
+      const vanMedio = van(tir);
+      if (Math.abs(vanMedio) < tol || (tasaMax - tasaMin) < 1e-14) {
+        iter = maxIter; // condicion de salida del bucle
+      } else if (vanMin * vanMedio < 0) {
+        tasaMax = tir;
+      } else {
+        tasaMin = tir;
+        vanMin = vanMedio;
+      }
+    }
+  }
+  return tir;
 }
 
-/** VAN = flujo[0] + NPV(tasa, flujo[1..]) = suma flujo[t]/(1+tasa)^t. */
+/** #VAN - Valor Actual Neto = suma de flujo[t]/(1+tasa)^t (descontado al COK). */
 export function calcularVAN(flujos, tasa) {
   return flujos.reduce((acc, f, t) => acc + f / Math.pow(1 + tasa, t), 0);
 }
