@@ -39,7 +39,7 @@ const initialForm = {
   vehiculoId: '',
 }
 
-// Juegos de datos de prueba para la demostracion.
+// Juegos de datos de prueba para la demostracion. #DEMOS
 const demo1 = {
   moneda: 'PEN',
   precioVenta: 16000,
@@ -112,7 +112,7 @@ const demos = [
   { etiqueta: 'Demo 4', datos: demo4, dni: '43219876', vehiculo: 'Kia Sportage', nota: 'SUV en Soles: TNA 14% capitalizacion mensual, 60 cuotas, gracia parcial 2, sin cuota final.' },
 ]
 
-const ayuda = {
+const ayuda = { // #AYUDA
   moneda: 'Moneda del prestamo. PEN para Soles, USD para Dolares.',
   precioVenta: 'Precio total del vehiculo antes de descontar la cuota inicial.',
   pctCuotaInicial: 'Porcentaje del precio que el cliente paga al inicio. Ej. 20 significa 20%.',
@@ -223,8 +223,7 @@ export default function SimuladorPage() {
       const graciaTotal = numberValue(form.graciaTotal)
       const graciaParcial = numberValue(form.graciaParcial)
 
-      // Un valor negativo escrito a proposito se rechaza con mensaje;
-      // los campos vacios (o en cero) solo dejan el panel sin resultados.
+      // Un negativo se rechaza con mensaje; vacios dejan el panel sin resultados. #VALIDACION
       if (precioVenta < 0 || plazo < 0 || valorTasa < 0) {
         throw new Error('El precio, el plazo y la tasa no pueden ser negativos.')
       }
@@ -335,7 +334,7 @@ export default function SimuladorPage() {
     }))
   }
 
-  async function guardarSimulacion() {
+  async function guardarSimulacion() { // #GUARDAR
     if (!resultado) return
     setMensaje('')
 

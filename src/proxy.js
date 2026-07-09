@@ -1,6 +1,5 @@
 // src/proxy.js
-// Proxy de Next.js 16 (equivalente a middleware.js en Next 14/15).
-// Protege las rutas privadas: si no hay sesion, redirige al login.
+// Protege las rutas privadas: sin sesion redirige al login. #PROTECCION
 
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'

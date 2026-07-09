@@ -6,7 +6,7 @@
 
 // Utilitarios financieros
 
-/** #PMT - Cuota vencida por metodo frances (fv=0, type=0). Devuelve valor negativo (pago). */
+/** PMT: cuota vencida (fv=0, type=0). Devuelve valor negativo (pago). #PMT */
 function PMT(rate, nper, pv) {
   let pago;
   if (rate === 0) {
@@ -22,10 +22,8 @@ function PMT(rate, nper, pv) {
 // 1. CONVERSIÓN DE TASAS
 
 /**
- * #TASA - Conversion de tasas. TNA -> TEA segun el periodo de capitalizacion
- * (capPorAnio viene del formulario, no esta fijo), o TEA directa; luego TEA -> TEM.
- *   TEA = (1 + TNA/capPorAnio)^capPorAnio - 1     (capPorAnio: Diaria = 360, Mensual = 12)
- *   TEM = (1 + TEA)^(30/360) - 1
+ * TNA -> TEA según el período de capitalización, o TEA directa. #TASA
+ *   TEA = (1 + TNA/capPorAnio)^capPorAnio - 1   (Diaria = 360, Mensual = 12)
  */
 export function obtenerTasas(tipoTasa, tasa, { capPorAnio = 360, frecuencia = 30, diasPorAnio = 360 } = {}) {
   const TEA = tipoTasa === 'TNA'
@@ -77,26 +75,25 @@ export function calcularCredito(p) {
 
   // Tasas
   const { TEA, TEM } = obtenerTasas(tipoTasa, tasa, { capPorAnio, frecuencia, diasPorAnio });
-  const pSegDesPer = pctSegDesgravamen * frecuencia / 30; // por período
+  const pSegDesPer = pctSegDesgravamen * frecuencia / 30; // por período #SEGUROS
   const segRiePer  = pctSegRiesgo * precioVenta / NCxA;   // por período
 
   // Capitales
   const cuotaInicial  = pctCuotaInicial * precioVenta;    // CI
   const cuotaFinal    = pctCuotaFinal * precioVenta;      // CF (cuotón)
-  const montoPrestamo = precioVenta - cuotaInicial + costesIniciales; // Préstamo (recibe el cliente)
-  // #BALON - Cuota final (cuoton) traida a valor presente: CF / (1+TEM+desgravamen)^(N+1).
-  // El saldo a financiar con cuotas regulares es el prestamo menos ese valor presente.
+  const montoPrestamo = precioVenta - cuotaInicial + costesIniciales; // Préstamo (recibe el cliente) #PRESTAMO
+  // Saldo a financiar con cuotas regulares = préstamo menos VP de la cuota final #BALON
   const pSegDesMensual = pctSegDesgravamen; // tasa mensual base (idéntica al modelo)
   const vpCuotaFinal  = cuotaFinal / Math.pow(1 + TEM + pSegDesMensual, N + 1);
   const saldoFinanciar = montoPrestamo - vpCuotaFinal;    // Saldo
 
   // Tipo de período de gracia
   const tipoPG = (nc) =>
-    nc <= graciaTotal                   ? 'T'   // gracia total
+    nc <= graciaTotal                   ? 'T'   // gracia total #GRACIA
     : nc <= graciaTotal + graciaParcial ? 'P'   // gracia parcial
     : 'S';                                      // cuota normal
 
-  // Cronograma (NC = 0 .. N+1) con cuotón paralelo
+  // Cronograma (NC = 0 .. N+1) con cuotón paralelo #CRONOGRAMA
   const cronograma = [];
   const flujo = [];
 
@@ -122,7 +119,7 @@ export function calcularCredito(p) {
     const aCF       = nc === N + 1 ? (-siCF + iCF + segDesCF) : 0;
     const sfCF      = siCF - iCF - segDesCF + aCF;
 
-    // Cuota regular
+    // Cuota regular #CUOTA
     const si = nc === 1 ? saldoFinanciar : (nc <= N ? sfPrev : 0);
     const i  = -si * TEM;
     const segDes = -si * pSegDesPer;
@@ -143,7 +140,7 @@ export function calcularCredito(p) {
     const portes = nc <= N + 1 ? -portesPorPeriodo : 0;
     const gasAdm = nc <= N + 1 ? -gastosAdmPorPeriodo : 0;
 
-    // Flujo del período
+    // Flujo del período #FLUJO
     const flujoNC = cuota + segRie + gps + portes + gasAdm
                   + ((pg === 'T' || pg === 'P') ? segDes : 0)
                   + (nc === N + 1 ? aCF : 0);
@@ -163,14 +160,14 @@ export function calcularCredito(p) {
   }
 
   // Indicadores
-  const COKi = Math.pow(1 + cok, frecuencia / diasPorAnio) - 1;
+  const COKi = Math.pow(1 + cok, frecuencia / diasPorAnio) - 1; // tasa de descuento del período #COK
   const TIR  = calcularTIR(flujo);
-  const TCEA = Math.pow(1 + TIR, diasPorAnio / frecuencia) - 1;  // #TCEA - Costo efectivo anual = (1+TIR)^12 - 1
+  const TCEA = Math.pow(1 + TIR, diasPorAnio / frecuencia) - 1;  // (1+TIR)^12 - 1 #TCEA
   const VAN  = calcularVAN(flujo, COKi);
 
   // Totales
-  // Interes y seguro de desgravamen: solo lo pagado dentro de las cuotas
-  // regulares; la parte del cuoton ya queda dentro de la amortizacion total.
+  // Interes y desgravamen: solo lo pagado en cuotas regulares; la parte del
+  // cuoton ya queda dentro de la amortizacion total. #TOTALES
   const sum = (k) => cronograma.reduce((a, f) => a + (f[k] || 0), 0);
   const totales = {
     intereses:   -(sum('cuota') - sum('amortizacion') - sum('segDes')),
@@ -213,9 +210,8 @@ export function calcularCredito(p) {
 
 // 3. INDICADORES (TIR por bisección)
 
-// #TIR - Tasa Interna de Retorno por biseccion: la tasa que hace VAN(r) = 0.
 export function calcularTIR(flujos, tol = 1e-10, maxIter = 500) {
-  // VAN de los flujos a una tasa r de tanteo.
+  // VAN de los flujos a una tasa r de tanteo. #TIR
   const van = (r) => flujos.reduce((acc, f, t) => acc + f / Math.pow(1 + r, t), 0);
 
   // Intervalo de busqueda: de -99% a +1000% (no -100% exacto porque en r = -1
@@ -255,7 +251,7 @@ export function calcularTIR(flujos, tol = 1e-10, maxIter = 500) {
   return tir;
 }
 
-/** #VAN - Valor Actual Neto = suma de flujo[t]/(1+tasa)^t (descontado al COK). */
+/** VAN = flujo[0] + NPV(tasa, flujo[1..]) = suma flujo[t]/(1+tasa)^t. #VAN */
 export function calcularVAN(flujos, tasa) {
   return flujos.reduce((acc, f, t) => acc + f / Math.pow(1 + tasa, t), 0);
 }

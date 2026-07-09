@@ -1,6 +1,5 @@
 // lib/supabase.js
-// Cliente de Supabase para el navegador.
-// Usa @supabase/ssr para que las cookies de sesion se compartan con el middleware.
+// Cliente de Supabase; credenciales en variables de entorno. #CONEXION
 
 import { createBrowserClient } from '@supabase/ssr'
 
