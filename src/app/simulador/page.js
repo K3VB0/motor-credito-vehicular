@@ -134,6 +134,14 @@ const ayuda = { // #AYUDA
   vehiculoId: 'Vehiculo al que se asocia esta cotizacion. Debe estar registrado en el modulo Vehiculos.',
 }
 
+// Periodos de capitalizacion validos para una TNA, como en el modelo de
+// referencia (lista "Diaria, Mensual"). Unica fuente para el selector y la
+// validacion del formulario.
+const CAPITALIZACIONES = [
+  { value: 360, label: 'Diaria' },
+  { value: 12,  label: 'Mensual' },
+]
+
 // Columnas del cronograma, en el mismo orden y con el mismo significado que el
 // modelo de referencia. Se muestran TODAS para que el flujo (y por tanto la TIR,
 // la TCEA y el VAN) se pueda reconstruir a mano desde la tabla. #CRONOGRAMA
@@ -561,8 +569,9 @@ export default function SimuladorPage() {
               <Input label="Tasa anual (%)" name="valorTasa" value={form.valorTasa} onChange={update} help={ayuda.valorTasa} />
               {form.tipoTasa === 'TNA' && (
                 <Select label="Capitalizacion" name="capitalizacion" value={form.capitalizacion} onChange={update} help={ayuda.capitalizacion}>
-                  <option value={360}>Diaria</option>
-                  <option value={12}>Mensual</option>
+                  {CAPITALIZACIONES.map(opcion => (
+                    <option key={opcion.value} value={opcion.value}>{opcion.label}</option>
+                  ))}
                 </Select>
               )}
             </Group>
