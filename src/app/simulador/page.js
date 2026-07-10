@@ -120,8 +120,8 @@ const ayuda = { // #AYUDA
   tipoTasa: 'TEA: tasa efectiva anual. TNA: tasa nominal anual (requiere capitalizacion).',
   valorTasa: 'Valor de la tasa anual en porcentaje. Ej. 18 significa 18%.',
   capitalizacion: 'Periodo de capitalizacion cuando la tasa es TNA. Diaria = 360 capitalizaciones/anio, Mensual = 12.',
-  graciaTotal: 'Meses iniciales en los que el cliente no paga; el interes se capitaliza al saldo.',
-  graciaParcial: 'Meses iniciales en los que el cliente solo paga el interes, sin amortizar capital.',
+  graciaTotal: 'Meses iniciales sin cuota de capital ni interes: el interes se capitaliza al saldo. Los seguros y los costos periodicos se siguen cobrando.',
+  graciaParcial: 'Meses iniciales en los que el cliente solo paga el interes, sin amortizar capital. Los seguros y los costos periodicos se siguen cobrando.',
   pctBalon: 'Porcentaje del precio que se paga como cuota final o balon (cuoton) al final del plan. 0 = sin balon.',
   costesIniciales: 'Costes iniciales financiados que se suman al prestamo (notariales, registrales, etc.), en la moneda del credito.',
   pctSegDesgravamen: 'Seguro de desgravamen mensual en porcentaje. Ej. 0.049 significa 0.049% del saldo cada mes.',
@@ -597,10 +597,14 @@ export default function SimuladorPage() {
         {resultado && (
           <section className="min-w-0 space-y-4 [@media(min-width:1700px)]:flex [@media(min-width:1700px)]:min-h-0 [@media(min-width:1700px)]:flex-col">
             <div className="grid gap-3 sm:grid-cols-2 [@media(min-width:1500px)]:grid-cols-4">
-              <Metric label="Monto del prestamo" value={currency(form.moneda, resultado.capital.montoPrestamo)} icon={Banknote} accent="amber" />
-              <Metric label="Cuota ordinaria" value={currency(form.moneda, resultado.cuotaOrdinaria)} icon={Calendar} accent="sky" />
-              <Metric label="TCEA" value={percent(resultado.indicadores.TCEA)} icon={Scale} accent="emerald" />
-              <Metric label="VAN deudor" value={currency(form.moneda, resultado.indicadores.VAN)} icon={PiggyBank} accent="violet" />
+              <Metric label="Monto del prestamo" value={currency(form.moneda, resultado.capital.montoPrestamo)} icon={Banknote} accent="amber"
+                title="Precio - cuota inicial + costes iniciales financiados. Es el efectivo que recibe el cliente en el periodo 0." />
+              <Metric label="Cuota ordinaria" value={currency(form.moneda, resultado.cuotaOrdinaria)} icon={Calendar} accent="sky"
+                title="Cuota francesa nivelada. INCLUYE el seguro de desgravamen: PMT(TEM + tasa de desgravamen; cuotas restantes; saldo)." />
+              <Metric label="TCEA" value={percent(resultado.indicadores.TCEA)} icon={Scale} accent="emerald"
+                title="(1 + TIR mensual)^12 - 1, sobre el flujo completo del deudor." />
+              <Metric label="VAN deudor" value={currency(form.moneda, resultado.indicadores.VAN)} icon={PiggyBank} accent="violet"
+                title="Prestamo + valor presente de los flujos, descontados al COK mensual." />
             </div>
 
             <div className="rounded-lg border border-slate-200 bg-white">
@@ -615,6 +619,7 @@ export default function SimuladorPage() {
                 <Summary label="Cuota balon" value={currency(form.moneda, resultado.capital.cuotaBalon)} />
                 <Summary label="Total pagado" value={currency(form.moneda, resultado.indicadores.totalCuotas)} />
                 <Summary label="Capital del vehiculo" value={currency(form.moneda, resultado.capital.capitalTotal)} />
+                <Summary label="Costos financiados" value={currency(form.moneda, numberValue(form.costesIniciales))} />
                 <Summary label="VP de la cuota final" value={currency(form.moneda, resultado.capital.vpCuotaFinal)} />
                 <Summary label="Saldo a financiar" value={currency(form.moneda, resultado.capital.saldoFinanciar)} />
               </div>
@@ -743,10 +748,10 @@ function Group({ title, icon: Icon, accent = 'sky', children }) {
   )
 }
 
-function Metric({ label, value, icon: Icon, accent = 'sky' }) {
+function Metric({ label, value, icon: Icon, accent = 'sky', title }) {
   const c = accentMap[accent] || accentMap.sky
   return (
-    <div className="flex items-center gap-3 overflow-hidden rounded-lg border border-slate-200 bg-white px-4 py-3">
+    <div title={title} className="flex items-center gap-3 overflow-hidden rounded-lg border border-slate-200 bg-white px-4 py-3">
       {Icon && (
         <span className={`inline-flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg ${c.bg} ${c.text}`}>
           <Icon size={20} strokeWidth={1.75} />

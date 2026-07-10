@@ -84,9 +84,11 @@ export function calcularCredito(p) {
   const montoPrestamo = precioVenta - cuotaInicial + costesIniciales; // Préstamo (recibe el cliente) #PRESTAMO
 
   // Saldo a financiar con cuotas regulares = préstamo menos VP de la cuota final #BALON
-  // Réplica exacta del modelo: Saldo = Prestamo - CF/(1+TEM+pSegDes)^(N+1)
-  const pSegDesMensual = pctSegDesgravamen; // tasa mensual base (idéntica al modelo)
-  const vpCuotaFinal  = cuotaFinal / Math.pow(1 + TEM + pSegDesMensual, N + 1);
+  // Modelo: Saldo = Prestamo - CF/(1+TEM+pSegDes)^(N+1). El modelo descuenta con la
+  // tasa mensual y acumula el cuotón con la tasa por período; ambas coinciden con
+  // frecuencia = 30 (el único caso del trabajo). Aquí se usa pSegDesPer en los dos
+  // sitios para que descuento y acumulación sean inversos a cualquier frecuencia.
+  const vpCuotaFinal  = cuotaFinal / Math.pow(1 + TEM + pSegDesPer, N + 1);
   const saldoFinanciar = montoPrestamo - vpCuotaFinal;    // Saldo
 
   // El cuotón se paga en un período extra (N+1). Sin cuota balón ese período no
