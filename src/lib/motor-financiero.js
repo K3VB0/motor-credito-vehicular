@@ -70,6 +70,40 @@ export function calcularCredito(p) {
   const pctCuotaFinal = p.pctCuotaFinal ?? p.pctBalon  ?? 0;          // 'pctBalon'
   const capPorAnio    = p.capPorAnio    ?? p.capitalizacion ?? 360;   // 'capitalizacion'
 
+  const numeros = {
+    precioVenta, plazo, pctCuotaInicial, pctCuotaFinal, tasa, capPorAnio,
+    frecuencia, diasPorAnio, graciaTotal, graciaParcial, costesIniciales,
+    pctSegDesgravamen, pctSegRiesgo, gpsPorPeriodo, portesPorPeriodo,
+    gastosAdmPorPeriodo, cok,
+  };
+  for (const [nombre, valor] of Object.entries(numeros)) {
+    if (!Number.isFinite(valor)) throw new TypeError(`${nombre} debe ser un numero finito.`);
+  }
+  if (!['TNA', 'TEA'].includes(tipoTasa)) throw new RangeError('tipoTasa debe ser TNA o TEA.');
+  if (!Number.isInteger(plazo) || plazo <= 0 || plazo > 120) {
+    throw new RangeError('El plazo debe ser un entero entre 1 y 120 meses.');
+  }
+  if (!Number.isInteger(graciaTotal) || !Number.isInteger(graciaParcial) || graciaTotal < 0 || graciaParcial < 0) {
+    throw new RangeError('Los periodos de gracia deben ser enteros no negativos.');
+  }
+  if (graciaTotal + graciaParcial >= plazo) {
+    throw new RangeError('La suma de los periodos de gracia debe ser menor que el plazo.');
+  }
+  if (precioVenta <= 0) throw new RangeError('El precio del vehiculo debe ser mayor que cero.');
+  if (tasa < 0 || tasa > 1) throw new RangeError('La tasa anual debe estar entre 0% y 100%.');
+  if (frecuencia <= 0 || diasPorAnio <= 0) throw new RangeError('Las convenciones de tiempo deben ser positivas.');
+  if (tipoTasa === 'TNA' && (!Number.isInteger(capPorAnio) || capPorAnio <= 0)) {
+    throw new RangeError('La capitalizacion de una TNA debe ser un entero positivo.');
+  }
+  if (pctCuotaInicial < 0 || pctCuotaFinal < 0 || pctCuotaInicial > 1 || pctCuotaFinal > 1 || pctCuotaInicial + pctCuotaFinal >= 1) {
+    throw new RangeError('La cuota inicial y la cuota final deben ser porcentajes no negativos cuya suma sea menor a 100%.');
+  }
+  const noNegativos = [costesIniciales, pctSegDesgravamen, pctSegRiesgo, gpsPorPeriodo, portesPorPeriodo, gastosAdmPorPeriodo, cok];
+  if (noNegativos.some(valor => valor < 0)) throw new RangeError('Los seguros, costos y el COK no pueden ser negativos.');
+  if (pctSegDesgravamen > 0.10) throw new RangeError('El desgravamen mensual no puede superar 10%.');
+  if (pctSegRiesgo > 1) throw new RangeError('El seguro de riesgo no puede superar 100%.');
+  if (cok > 10) throw new RangeError('El COK anual no puede superar 1000%.');
+
   const N    = plazo;
   const NCxA = diasPorAnio / frecuencia;                 // cuotas por año (12)
 

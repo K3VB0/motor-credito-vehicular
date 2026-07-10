@@ -250,62 +250,75 @@ export default function SimuladorPage() {
 
   const calculo = useMemo(() => {
     try {
-      const plazo = numberValue(form.plazo)
-      const precioVenta = numberValue(form.precioVenta)
-      const valorTasa = numberValue(form.valorTasa)
-      const graciaTotal = numberValue(form.graciaTotal)
-      const graciaParcial = numberValue(form.graciaParcial)
-
-      // Un negativo se rechaza con mensaje; vacios dejan el panel sin resultados. #VALIDACION
-      if (precioVenta < 0 || plazo < 0 || valorTasa < 0) {
-        throw new Error('El precio, el plazo y la tasa no pueden ser negativos.')
-      }
-      if (plazo <= 0 || precioVenta <= 0 || valorTasa <= 0) {
+      if ([form.precioVenta, form.plazo, form.valorTasa].some(value => value === '')) {
         return { resultado: null, error: '' }
+      }
+
+      const camposNumericos = [
+        'precioVenta', 'pctCuotaInicial', 'plazo', 'valorTasa', 'capitalizacion',
+        'graciaTotal', 'graciaParcial', 'pctBalon', 'costesIniciales',
+        'pctSegDesgravamen', 'pctSegRiesgo', 'gpsPorPeriodo', 'portesPorPeriodo',
+        'gastosAdmPorPeriodo', 'cok',
+      ]
+      const valores = Object.fromEntries(camposNumericos.map(name => [name, numberValue(form[name])]))
+      if (Object.values(valores).some(value => !Number.isFinite(value))) {
+        throw new Error('Todos los valores numericos deben ser validos y finitos.')
+      }
+
+      const { plazo, precioVenta, valorTasa, graciaTotal, graciaParcial } = valores
+      if (precioVenta <= 0) throw new Error('El precio del vehiculo debe ser mayor que cero.')
+      if (plazo <= 0) throw new Error('El plazo debe ser mayor que cero.')
+      if (valorTasa < 0) throw new Error('La tasa de interes no puede ser negativa.')
+      if (graciaTotal < 0 || graciaParcial < 0) {
+        throw new Error('Los periodos de gracia no pueden ser negativos.')
+      }
+      if (Object.values(valores).some(value => value < 0)) {
+        throw new Error('Los porcentajes, seguros y costos no pueden ser negativos.')
       }
       if (!Number.isInteger(plazo) || !Number.isInteger(graciaTotal) || !Number.isInteger(graciaParcial)) {
         throw new Error('El plazo y los meses de gracia deben ser numeros enteros.')
       }
+      if (plazo > 120) throw new Error('El plazo no puede superar 120 meses.')
       if (graciaTotal + graciaParcial >= plazo) {
-        throw new Error('Los meses de gracia deben ser menores al plazo.')
+        throw new Error('La suma de las gracias total y parcial debe ser menor que el plazo.')
       }
-      const camposNoNegativos = [
-        form.pctCuotaInicial, form.pctBalon, form.costesIniciales,
-        form.pctSegDesgravamen, form.pctSegRiesgo, form.gpsPorPeriodo,
-        form.portesPorPeriodo, form.gastosAdmPorPeriodo, form.cok,
-        form.graciaTotal, form.graciaParcial,
-      ]
-      if (camposNoNegativos.some(v => numberValue(v) < 0)) {
-        throw new Error('Los porcentajes y costos no pueden ser negativos.')
-      }
-      const pctCI = numberValue(form.pctCuotaInicial)
-      const pctCF = numberValue(form.pctBalon)
+      if (valorTasa > 100) throw new Error('La tasa anual no puede superar 100%.')
+      if (valores.pctSegDesgravamen > 10) throw new Error('El desgravamen mensual no puede superar 10%.')
+      if (valores.pctSegRiesgo > 100) throw new Error('El seguro de riesgo no puede superar 100%.')
+      if (valores.cok > 1000) throw new Error('El COK anual no puede superar 1000%.')
+
+      const pctCI = valores.pctCuotaInicial
+      const pctCF = valores.pctBalon
       if (pctCI > 100 || pctCF > 100) {
         throw new Error('La cuota inicial y la cuota final no pueden superar el 100% del precio.')
       }
       if (pctCI + pctCF >= 100) {
         throw new Error('La cuota inicial mas la cuota final debe ser menor al 100% del precio.')
       }
+      const capitalizacion = valores.capitalizacion
+      if (form.tipoTasa === 'TNA' && !CAPITALIZACIONES.some(opcion => opcion.value === capitalizacion)) {
+        throw new Error('Selecciona un periodo de capitalizacion valido para la TNA.')
+      }
 
       return {
         resultado: calcularCredito({
-          precioVenta: numberValue(form.precioVenta),
-          pctCuotaInicial: numberValue(form.pctCuotaInicial) / 100,
+          precioVenta,
+          pctCuotaInicial: pctCI / 100,
           plazo,
           tipoTasa: form.tipoTasa,
-          valorTasa: numberValue(form.valorTasa) / 100,
-          capitalizacion: numberValue(form.capitalizacion) || 360,
+          valorTasa: valorTasa / 100,
+          capitalizacion,
           graciaTotal,
           graciaParcial,
-          pctBalon: numberValue(form.pctBalon) / 100,
+          pctBalon: pctCF / 100,
           // Costos y seguros
-          costesIniciales: numberValue(form.costesIniciales),
-          pctSegDesgravamen: numberValue(form.pctSegDesgravamen) / 100,
-          pctSegRiesgo: numberValue(form.pctSegRiesgo) / 100,
-          gpsPorPeriodo: numberValue(form.gpsPorPeriodo),
-          portesPorPeriodo: numberValue(form.portesPorPeriodo),
-          gastosAdmPorPeriodo: numberValue(form.gastosAdmPorPeriodo),
-          cok: numberValue(form.cok) / 100,
+          costesIniciales: valores.costesIniciales,
+          pctSegDesgravamen: valores.pctSegDesgravamen / 100,
+          pctSegRiesgo: valores.pctSegRiesgo / 100,
+          gpsPorPeriodo: valores.gpsPorPeriodo,
+          portesPorPeriodo: valores.portesPorPeriodo,
+          gastosAdmPorPeriodo: valores.gastosAdmPorPeriodo,
+          cok: valores.cok / 100,
         }),
         error: '',
       }
@@ -575,11 +588,15 @@ export default function SimuladorPage() {
 
           </div>
 
-          {error && <p className="mt-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+          {error && (
+            <p role="alert" aria-live="polite" className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
+              No se puede generar el cronograma: {error}
+            </p>
+          )}
 
           <Button
             onClick={guardarSimulacion}
-            disabled={guardando}
+            disabled={guardando || !resultado}
             variant="primary"
             fullWidth
             className="mt-4"
