@@ -611,7 +611,7 @@ export default function SimuladorPage() {
               <div className="border-b border-slate-100 px-4 py-3">
                 <h2 className="text-base font-semibold">Resumen financiero</h2>
               </div>
-              <div className="grid gap-3 p-4 text-sm md:grid-cols-3">
+              <div className="grid gap-3 p-4 text-sm md:grid-cols-3 xl:grid-cols-4">
                 <Summary label="TEA" value={percent(resultado.tasas.TEA)} />
                 <Summary label="TEM mensual" value={percent(resultado.tasas.TEM)} />
                 <Summary label="TIR mensual" value={percent(resultado.tasas.TIR_mensual)} />
@@ -622,7 +622,21 @@ export default function SimuladorPage() {
                 <Summary label="Costos financiados" value={currency(form.moneda, numberValue(form.costesIniciales))} />
                 <Summary label="VP de la cuota final" value={currency(form.moneda, resultado.capital.vpCuotaFinal)} />
                 <Summary label="Saldo a financiar" value={currency(form.moneda, resultado.capital.saldoFinanciar)} />
+                <Summary label="Suma de cuotas del cronograma" value={currency(form.moneda, resultado.totales.sumaCuotasCronograma)} />
+                <Summary label="Desgravamen fuera de cuota (gracia)" value={currency(form.moneda, resultado.totales.desgravamenFueraCuota)} />
+                <Summary label="Pago final balon" value={currency(form.moneda, resultado.totales.pagoFinalBalon)} />
+                <Summary label="Seguro de riesgo" value={currency(form.moneda, resultado.totales.segRiesgo)} />
+                <Summary label="GPS" value={currency(form.moneda, resultado.totales.gps)} />
+                <Summary label="Portes" value={currency(form.moneda, resultado.totales.portes)} />
+                <Summary label="Gastos administrativos" value={currency(form.moneda, resultado.totales.gastosAdm)} />
+                <Summary label="Interes regular generado" value={currency(form.moneda, resultado.totales.interesesRegular)} />
+                <Summary label="Interes del balon" value={currency(form.moneda, resultado.totales.interesesBalon)} />
+                <Summary label="Diferencia de conciliacion" value={currency(form.moneda, resultado.totales.diferenciaReconciliacion)} />
               </div>
+              <p className="border-t border-slate-100 px-4 py-2 text-[11px] text-slate-500">
+                Total pagado = cuotas del cronograma + desgravamen cobrado fuera de cuota durante gracia + pago final balon
+                + seguro de riesgo + GPS + portes + gastos administrativos. La cuota inicial y el desembolso del periodo 0 no se incluyen.
+              </p>
             </div>
 
             <div className="overflow-hidden rounded-lg border border-slate-200 bg-white [@media(min-width:1700px)]:flex [@media(min-width:1700px)]:min-h-0 [@media(min-width:1700px)]:flex-1 [@media(min-width:1700px)]:flex-col">

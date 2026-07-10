@@ -175,25 +175,49 @@ export function calcularCredito(p) {
   const TCEA = Math.pow(1 + TIR, diasPorAnio / frecuencia) - 1;  // (1+TIR)^12 - 1 #TCEA
   const VAN  = calcularVAN(flujo, COKi);
 
-  // Totales
-  // Interes y desgravamen: solo lo pagado en cuotas regulares; la parte del
-  // cuoton ya queda dentro de la amortizacion total. #TOTALES
-  const sum = (k) => cronograma.reduce((a, f) => a + (f[k] || 0), 0);
+  // Totales analiticos y conciliacion de caja. #TOTALES
+  // No se reconstruye el interes como cuota - amortizacion - desgravamen:
+  // esa identidad solo sirve en una cuota normal y falla durante la gracia.
+  const filasPago = cronograma.slice(1);
+  const sum = (filas, campo) => filas.reduce((a, f) => a + (f[campo] || 0), 0);
+  const filasInteresPagado = filasPago.filter(f => f.tipoPG !== 'T');
+  const filasDesgravamenFueraCuota = filasPago.filter(f => f.tipoPG === 'T' || f.tipoPG === 'P');
+
   const totales = {
-    intereses:   -(sum('cuota') - sum('amortizacion') - sum('segDes')),
-    amortizacion:-(sum('amortizacion') + sum('amortCF')),
-    segDesgravamen: -sum('segDes'),
-    segRiesgo:   -sum('segRie'),
-    gps:         -sum('gps'),
-    portes:      -sum('portes'),
-    gastosAdm:   -sum('gasAdm'),
+    interesesRegular: -sum(filasPago, 'interes'),
+    interesesPagados: -sum(filasInteresPagado, 'interes'),
+    interesesCapitalizados: -sum(filasPago.filter(f => f.tipoPG === 'T'), 'interes'),
+    interesesBalon: -sum(filasPago, 'interesCF'),
+    amortizacionRegular: -sum(filasPago, 'amortizacion'),
+    pagoFinalBalon: -sum(filasPago, 'amortCF'),
+    segDesgravamenRegular: -sum(filasPago, 'segDes'),
+    segDesgravamenBalon: -sum(filasPago, 'segDesCF'),
+    sumaCuotasCronograma: -sum(filasPago, 'cuota'),
+    desgravamenFueraCuota: -sum(filasDesgravamenFueraCuota, 'segDes'),
+    segRiesgo: -sum(filasPago, 'segRie'),
+    gps: -sum(filasPago, 'gps'),
+    portes: -sum(filasPago, 'portes'),
+    gastosAdm: -sum(filasPago, 'gasAdm'),
   };
 
   // Cuota ordinaria representativa (primer período sin gracia)
   const primeraS = cronograma.find(r => r.tipoPG === 'S');
   const cuotaOrdinaria = primeraS ? Math.abs(primeraS.cuota) : 0;
   const capitalTotal   = precioVenta - cuotaInicial;
-  const totalPagado    = -flujo.slice(1).reduce((a, x) => a + x, 0); // suma de egresos
+  const totalPagado = -flujo.slice(1).reduce((a, x) => a + x, 0);
+  totales.totalComponentesPagados = totales.sumaCuotasCronograma
+    + totales.desgravamenFueraCuota
+    + totales.pagoFinalBalon
+    + totales.segRiesgo
+    + totales.gps
+    + totales.portes
+    + totales.gastosAdm;
+  totales.diferenciaReconciliacion = totalPagado - totales.totalComponentesPagados;
+  // Alias historicos. El interes total generado se informa por separado del
+  // desglose de caja para no duplicar el interes capitalizado en gracia total.
+  totales.intereses = totales.interesesRegular + totales.interesesBalon;
+  totales.amortizacion = totales.amortizacionRegular + totales.pagoFinalBalon;
+  totales.segDesgravamen = totales.segDesgravamenRegular + totales.segDesgravamenBalon;
 
   return {
     tasas: {
@@ -211,6 +235,8 @@ export function calcularCredito(p) {
     indicadores: {
       TIR_mensual: TIR, TCEA, VAN,
       totalInteres: totales.intereses,        // alias retrocompatible
+      totalInteresRegular: totales.interesesRegular,
+      totalInteresBalon: totales.interesesBalon,
       totalCuotas:  totalPagado,              // alias retrocompatible
     },
     totales,
