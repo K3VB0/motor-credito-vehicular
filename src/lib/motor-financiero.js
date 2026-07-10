@@ -82,10 +82,17 @@ export function calcularCredito(p) {
   const cuotaInicial  = pctCuotaInicial * precioVenta;    // CI
   const cuotaFinal    = pctCuotaFinal * precioVenta;      // CF (cuotón)
   const montoPrestamo = precioVenta - cuotaInicial + costesIniciales; // Préstamo (recibe el cliente) #PRESTAMO
+
   // Saldo a financiar con cuotas regulares = préstamo menos VP de la cuota final #BALON
+  // Réplica exacta del modelo: Saldo = Prestamo - CF/(1+TEM+pSegDes)^(N+1)
   const pSegDesMensual = pctSegDesgravamen; // tasa mensual base (idéntica al modelo)
   const vpCuotaFinal  = cuotaFinal / Math.pow(1 + TEM + pSegDesMensual, N + 1);
   const saldoFinanciar = montoPrestamo - vpCuotaFinal;    // Saldo
+
+  // El cuotón se paga en un período extra (N+1). Sin cuota balón ese período no
+  // existe: cerrar el plan en N evita cobrar costos sobre un préstamo ya amortizado.
+  const conBalon      = cuotaFinal > 0;
+  const ultimoPeriodo = conBalon ? N + 1 : N;
 
   // Tipo de período de gracia
   const tipoPG = (nc) =>
@@ -93,7 +100,7 @@ export function calcularCredito(p) {
     : nc <= graciaTotal + graciaParcial ? 'P'   // gracia parcial
     : 'S';                                      // cuota normal
 
-  // Cronograma (NC = 0 .. N+1) con cuotón paralelo #CRONOGRAMA
+  // Cronograma (NC = 0 .. ultimoPeriodo) con cuotón paralelo #CRONOGRAMA
   const cronograma = [];
   const flujo = [];
 
@@ -109,7 +116,7 @@ export function calcularCredito(p) {
   let sfCFprev = 0; // saldo final del cuotón (período anterior)
   let sfPrev   = 0; // saldo final de la cuota regular (período anterior)
 
-  for (let nc = 1; nc <= N + 1; nc++) {
+  for (let nc = 1; nc <= ultimoPeriodo; nc++) {
     const pg = tipoPG(nc);
 
     // Cuotón (cuota final)
@@ -134,13 +141,14 @@ export function calcularCredito(p) {
     const amort = (nc <= N && pg === 'S') ? (cuota - i - segDes) : 0;
     const sf    = pg === 'T' ? (si - i) : (si + amort);
 
-    // Costes periódicos (vigentes hasta N+1)
-    const segRie = nc <= N + 1 ? -segRiePer : 0;
-    const gps    = nc <= N + 1 ? -gpsPorPeriodo : 0;
-    const portes = nc <= N + 1 ? -portesPorPeriodo : 0;
-    const gasAdm = nc <= N + 1 ? -gastosAdmPorPeriodo : 0;
+    // Costes periódicos (vigentes en todo período emitido: 1 .. ultimoPeriodo)
+    const segRie = -segRiePer;
+    const gps    = -gpsPorPeriodo;
+    const portes = -portesPorPeriodo;
+    const gasAdm = -gastosAdmPorPeriodo;
 
-    // Flujo del período #FLUJO
+    // Flujo del período. En cuotas 'S' el desgravamen ya viaja dentro de la cuota
+    // (amort = cuota - i - segDes); en gracia la cuota no lo contiene y se suma aparte. #FLUJO
     const flujoNC = cuota + segRie + gps + portes + gasAdm
                   + ((pg === 'T' || pg === 'P') ? segDes : 0)
                   + (nc === N + 1 ? aCF : 0);

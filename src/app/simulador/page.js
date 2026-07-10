@@ -119,7 +119,7 @@ const ayuda = { // #AYUDA
   plazo: 'Numero total de cuotas mensuales del credito (meses de 30 dias).',
   tipoTasa: 'TEA: tasa efectiva anual. TNA: tasa nominal anual (requiere capitalizacion).',
   valorTasa: 'Valor de la tasa anual en porcentaje. Ej. 18 significa 18%.',
-  capitalizacion: 'Numero de capitalizaciones por anio cuando la tasa es TNA. Mensual = 12, diaria = 360.',
+  capitalizacion: 'Periodo de capitalizacion cuando la tasa es TNA. Diaria = 360 capitalizaciones/anio, Mensual = 12.',
   graciaTotal: 'Meses iniciales en los que el cliente no paga; el interes se capitaliza al saldo.',
   graciaParcial: 'Meses iniciales en los que el cliente solo paga el interes, sin amortizar capital.',
   pctBalon: 'Porcentaje del precio que se paga como cuota final o balon (cuoton) al final del plan. 0 = sin balon.',
@@ -134,12 +134,45 @@ const ayuda = { // #AYUDA
   vehiculoId: 'Vehiculo al que se asocia esta cotizacion. Debe estar registrado en el modulo Vehiculos.',
 }
 
+// Columnas del cronograma, en el mismo orden y con el mismo significado que el
+// modelo de referencia. Se muestran TODAS para que el flujo (y por tanto la TIR,
+// la TCEA y el VAN) se pueda reconstruir a mano desde la tabla. #CRONOGRAMA
+const cabecerasCF = [
+  { k: 'saldoInicialCF', corto: 'S. ini. CF',  ayuda: 'Saldo inicial de la cuota final (cuoton)' },
+  { k: 'interesCF',      corto: 'Int. CF',     ayuda: 'Interes devengado por la cuota final' },
+  { k: 'amortCF',        corto: 'Amort. CF',   ayuda: 'Amortizacion de la cuota final; solo en el ultimo periodo' },
+  { k: 'segDesCF',       corto: 'S. desg. CF', ayuda: 'Seguro de desgravamen de la cuota final' },
+  { k: 'saldoFinalCF',   corto: 'S. fin. CF',  ayuda: 'Saldo final de la cuota final' },
+]
+
+const cabecerasRegular = [
+  { k: 'saldoInicial', corto: 'Saldo inicial', ayuda: 'Saldo inicial de la cuota regular' },
+  { k: 'interes',      corto: 'Interes',       ayuda: 'Interes del periodo: -saldo inicial x TEM' },
+  { k: 'cuota',        corto: 'Cuota',         ayuda: 'Cuota francesa. INCLUYE el seguro de desgravamen: PMT(TEM + seg. desgravamen; cuotas restantes; saldo)' },
+  { k: 'amortizacion', corto: 'Amortiz.',      ayuda: 'Amortizacion = Cuota - Interes - Seguro de desgravamen' },
+  { k: 'segDes',       corto: 'S. desgrav.',   ayuda: 'Seguro de desgravamen del periodo: -saldo inicial x tasa' },
+  { k: 'segRie',       corto: 'S. riesgo',     ayuda: 'Seguro contra todo riesgo del periodo' },
+  { k: 'gps',          corto: 'GPS',           ayuda: 'Costo de GPS del periodo' },
+  { k: 'portes',       corto: 'Portes',        ayuda: 'Portes del periodo' },
+  { k: 'gasAdm',       corto: 'Gastos adm.',   ayuda: 'Gastos de administracion del periodo' },
+  { k: 'saldoFinal',   corto: 'Saldo final',   ayuda: 'Saldo final de la cuota regular' },
+]
+
 function currency(moneda, value) {
   return new Intl.NumberFormat('es-PE', {
     style: 'currency',
     currency: moneda === 'USD' ? 'USD' : 'PEN',
     minimumFractionDigits: 2,
-  }).format(Number.isFinite(value) ? value : 0)
+    // `value + 0` normaliza el -0 que producen los productos por cero del motor.
+  }).format(Number.isFinite(value) ? value + 0 : 0)
+}
+
+function Money({ moneda, v, fuerte = false, tenue = false }) {
+  return (
+    <td className={`whitespace-nowrap px-2 py-2 text-right tabular-nums ${fuerte ? 'font-medium text-slate-950' : ''} ${tenue ? 'text-slate-500' : ''}`}>
+      {currency(moneda, v)}
+    </td>
+  )
 }
 
 function percent(value) {
@@ -195,7 +228,7 @@ export default function SimuladorPage() {
         plazo:               s.plazo_meses || '',
         tipoTasa:            s.tipo_tasa || 'TEA',
         valorTasa:           aPorcentaje(s.valor_tasa),
-        capitalizacion:      s.capitalizacion || 360,
+        capitalizacion:      Number(s.capitalizacion) === 12 ? 12 : 360,
         graciaTotal:         s.gracia_total || 0,
         graciaParcial:       s.gracia_parcial || 0,
         pctBalon:            aPorcentaje(s.pct_balon),
@@ -514,7 +547,10 @@ export default function SimuladorPage() {
               </Select>
               <Input label="Tasa anual (%)" name="valorTasa" value={form.valorTasa} onChange={update} help={ayuda.valorTasa} />
               {form.tipoTasa === 'TNA' && (
-                <Input label="Capitalizacion anual" name="capitalizacion" value={form.capitalizacion} onChange={update} help={ayuda.capitalizacion} />
+                <Select label="Capitalizacion" name="capitalizacion" value={form.capitalizacion} onChange={update} help={ayuda.capitalizacion}>
+                  <option value={360}>Diaria</option>
+                  <option value={12}>Mensual</option>
+                </Select>
               )}
             </Group>
 
@@ -561,7 +597,7 @@ export default function SimuladorPage() {
         {resultado && (
           <section className="min-w-0 space-y-4 [@media(min-width:1700px)]:flex [@media(min-width:1700px)]:min-h-0 [@media(min-width:1700px)]:flex-col">
             <div className="grid gap-3 sm:grid-cols-2 [@media(min-width:1500px)]:grid-cols-4">
-              <Metric label="Capital financiado" value={currency(form.moneda, resultado.capital.capitalTotal)} icon={Banknote} accent="amber" />
+              <Metric label="Monto del prestamo" value={currency(form.moneda, resultado.capital.montoPrestamo)} icon={Banknote} accent="amber" />
               <Metric label="Cuota ordinaria" value={currency(form.moneda, resultado.cuotaOrdinaria)} icon={Calendar} accent="sky" />
               <Metric label="TCEA" value={percent(resultado.indicadores.TCEA)} icon={Scale} accent="emerald" />
               <Metric label="VAN deudor" value={currency(form.moneda, resultado.indicadores.VAN)} icon={PiggyBank} accent="violet" />
@@ -573,11 +609,14 @@ export default function SimuladorPage() {
               </div>
               <div className="grid gap-3 p-4 text-sm md:grid-cols-3">
                 <Summary label="TEA" value={percent(resultado.tasas.TEA)} />
-                <Summary label="TEP mensual" value={percent(resultado.tasas.TEP)} />
+                <Summary label="TEM mensual" value={percent(resultado.tasas.TEM)} />
                 <Summary label="TIR mensual" value={percent(resultado.tasas.TIR_mensual)} />
                 <Summary label="Cuota inicial" value={currency(form.moneda, resultado.capital.cuotaInicial)} />
                 <Summary label="Cuota balon" value={currency(form.moneda, resultado.capital.cuotaBalon)} />
-                <Summary label="Total cuotas" value={currency(form.moneda, resultado.indicadores.totalCuotas)} />
+                <Summary label="Total pagado" value={currency(form.moneda, resultado.indicadores.totalCuotas)} />
+                <Summary label="Capital del vehiculo" value={currency(form.moneda, resultado.capital.capitalTotal)} />
+                <Summary label="VP de la cuota final" value={currency(form.moneda, resultado.capital.vpCuotaFinal)} />
+                <Summary label="Saldo a financiar" value={currency(form.moneda, resultado.capital.saldoFinanciar)} />
               </div>
             </div>
 
@@ -586,42 +625,38 @@ export default function SimuladorPage() {
                 <h2 className="text-base font-semibold">Cronograma de pagos</h2>
               </div>
               <div className="max-h-[520px] overflow-auto [@media(min-width:1700px)]:max-h-none [@media(min-width:1700px)]:flex-1">
-                <table className="w-full table-fixed text-left text-xs">
-                  <colgroup>
-                    <col className="w-[8%]" />
-                    <col className="w-[8%]" />
-                    <col className="w-[17%]" />
-                    <col className="w-[14%]" />
-                    <col className="w-[17%]" />
-                    <col className="w-[16%]" />
-                    <col className="w-[20%]" />
-                  </colgroup>
-                  <thead className="sticky top-0 bg-slate-50 text-[11px] uppercase text-slate-500">
+                <table className="w-max min-w-full text-left text-xs">
+                  <thead className="sticky top-0 z-10 bg-slate-50 text-[11px] uppercase text-slate-500">
                     <tr>
-                      <th className="px-2 py-2">Cuota</th>
-                      <th className="px-2 py-2">Gracia</th>
-                      <th className="px-2 py-2 text-right">Saldo inicial</th>
-                      <th className="px-2 py-2 text-right">Interes</th>
-                      <th className="px-2 py-2 text-right">Amortiz.</th>
-                      <th className="px-2 py-2 text-right">Cuota</th>
-                      <th className="px-2 py-2 text-right">Saldo final</th>
+                      <th className="whitespace-nowrap px-2 py-2" title="Numero de cuota">N</th>
+                      <th className="whitespace-nowrap px-2 py-2" title="Periodo de gracia: T total, P parcial, S cuota normal">PG</th>
+                      {cabecerasCF.map(h => (
+                        <th key={h.k} className="whitespace-nowrap px-2 py-2 text-right text-violet-600" title={h.ayuda}>{h.corto}</th>
+                      ))}
+                      {cabecerasRegular.map(h => (
+                        <th key={h.k} className="whitespace-nowrap px-2 py-2 text-right" title={h.ayuda}>{h.corto}</th>
+                      ))}
+                      <th className="whitespace-nowrap px-2 py-2 text-right" title="Flujo de caja del deudor en el periodo. Es la fila que alimenta la TIR, la TCEA y el VAN.">Flujo</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {resultado.cronograma.map(row => (
-                      <tr key={row.numeroCuota}>
-                        <td className="px-2 py-2 tabular-nums">{row.numeroCuota}</td>
-                        <td className="px-2 py-2">{row.tipoPG}</td>
-                        <td className="px-2 py-2 text-right tabular-nums">{currency(form.moneda, row.saldoInicial)}</td>
-                        <td className="px-2 py-2 text-right tabular-nums">{currency(form.moneda, row.interes)}</td>
-                        <td className="px-2 py-2 text-right tabular-nums">{currency(form.moneda, row.amortizacion)}</td>
-                        <td className="px-2 py-2 text-right font-medium tabular-nums">{currency(form.moneda, row.cuota)}</td>
-                        <td className="px-2 py-2 text-right tabular-nums">{currency(form.moneda, row.saldoFinal)}</td>
+                      <tr key={row.numeroCuota} className="hover:bg-slate-50">
+                        <td className="whitespace-nowrap px-2 py-2 tabular-nums">{row.numeroCuota}</td>
+                        <td className="whitespace-nowrap px-2 py-2">{row.tipoPG}</td>
+                        {cabecerasCF.map(h => <Money key={h.k} moneda={form.moneda} v={row[h.k]} tenue />)}
+                        {cabecerasRegular.map(h => <Money key={h.k} moneda={form.moneda} v={row[h.k]} fuerte={h.k === 'cuota'} />)}
+                        <Money moneda={form.moneda} v={row.flujo} fuerte />
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
+              <p className="border-t border-slate-100 px-4 py-2 text-[11px] text-slate-500">
+                La cuota incluye el seguro de desgravamen: <strong>Cuota = Interes + Amortizacion + Seg. desgravamen</strong>.
+                El flujo suma la cuota, los costos del periodo y, en el ultimo, la cuota balon. Las columnas moradas
+                siguen la cuota final (cuoton) en paralelo.
+              </p>
             </div>
           </section>
         )}
